@@ -13,7 +13,6 @@ import drazek.jiyt.ui.components.JiytFloatingActionButton
 import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.theme.JiytTheme
 
-// make one top app bar with nav back ability, cleanup components to package, finish the add anim screen
 @Composable
 fun JiytAnimListScreen(
     onAddClicked: () -> Unit,

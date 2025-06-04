@@ -6,7 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import drazek.jiyt.ui.JiytAddAnimationScreen
+import drazek.jiyt.ui.addAnimScreen.JiytAddAnimationScreen
 import drazek.jiyt.ui.JiytAnimListScreen
 import drazek.jiyt.ui.JiytViewModelAnimList
 
@@ -15,6 +15,7 @@ enum class JiytMainScreen{
     MakeAnim
 }
 
+// TODO: add top app bar here so u dont have to pass data through two composables
 @Composable
 fun JiytMainScreen(
     viewModel: JiytViewModelAnimList = viewModel(),
@@ -32,7 +33,11 @@ fun JiytMainScreen(
                 )
             }
             composable(route = JiytMainScreen.MakeAnim.name) {
-                JiytAddAnimationScreen()
+                JiytAddAnimationScreen(
+                    onBackClicked = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
 }

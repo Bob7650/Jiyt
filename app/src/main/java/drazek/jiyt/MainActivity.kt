@@ -19,7 +19,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.Composable
-import drazek.jiyt.ui.JiytAddAnimationScreen
 import drazek.jiyt.ui.JiytViewModelAnimList
 import drazek.jiyt.ui.theme.JiytTheme
 

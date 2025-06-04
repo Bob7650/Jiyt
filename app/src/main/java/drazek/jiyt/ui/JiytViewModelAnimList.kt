@@ -42,6 +42,7 @@ class JiytViewModelAnimList : ViewModel() {
     private var socket: BluetoothSocket? = null
     private var connectedDeviceName: String? = null
 
+
     fun createAssociationRequest(){
         val deviceFilter: BluetoothDeviceFilter = BluetoothDeviceFilter.Builder()
             .setNamePattern(Pattern.compile(".")) // Optional filter by name

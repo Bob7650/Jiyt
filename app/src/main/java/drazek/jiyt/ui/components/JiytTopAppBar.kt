@@ -16,7 +16,8 @@ import drazek.jiyt.ui.theme.JiytTheme
 @Composable
 fun JiytTopAppBar(
     title: String,
-    canGoBack: Boolean){
+    canGoBack: Boolean,
+    onBackClicked: () -> Unit = {}){
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(),
         title = {
@@ -24,7 +25,7 @@ fun JiytTopAppBar(
         },
         navigationIcon = {
             if(canGoBack) {
-                IconButton(onClick = {}) {
+                IconButton(onClick = onBackClicked) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = null
