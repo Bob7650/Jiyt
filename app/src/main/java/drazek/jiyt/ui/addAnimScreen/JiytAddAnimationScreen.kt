@@ -1,5 +1,6 @@
 package drazek.jiyt.ui.addAnimScreen
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,19 +18,27 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.savedstate.savedState
+import drazek.jiyt.ui.components.JiytColorPickerPopup
 import drazek.jiyt.ui.components.JiytLEDMatrixEditor
 import drazek.jiyt.ui.components.JiytToolBar
 import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.theme.JiytTheme
+import drazek.jiyt.util.ToolTypes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 const val GRID_SIZE = 16
 
@@ -38,10 +47,27 @@ fun JiytAddAnimationScreen(
     viewModel: JiytAddAnimScreenVM = viewModel(),
     onBackClicked: () -> Unit,
 ) {
+    var showPicker = remember { mutableStateOf(false) }
+    var selectedColor = remember { mutableStateOf(Color.White) }
+
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) { 
+        viewModel.toastEvent.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     val grid = remember {
         mutableStateListOf(
             *Array(GRID_SIZE) { mutableStateListOf(*Array(GRID_SIZE) { Color.Black }) }
+        )
+    }
+
+    if (showPicker.value){
+        JiytColorPickerPopup(
+            onColorSelected = { color -> selectedColor.value = color },
+            onDismiss = { showPicker.value = false }
         )
     }
 
@@ -52,9 +78,8 @@ fun JiytAddAnimationScreen(
             modifier = Modifier.padding(contentPadding)
         ) {
             JiytLEDMatrixEditor(
-                changePixel = { x, y, color -> grid[y][x] = color },
+                changePixel = { x, y -> grid[y][x] = if (viewModel.tool.value== ToolTypes.Eraser) Color.Black else selectedColor.value },
                 updateGrid = { viewModel.saveGridState(grid.map { it.toList() }) },
-                getTool = { viewModel.tool.value },
                 seePixel = { x,y -> grid[y][x] }
             )
 
@@ -81,7 +106,7 @@ fun JiytAddAnimationScreen(
                     }
                 },
                 onEraser = { viewModel.onEraserClick() },
-                onColorPicker = { viewModel.onColorClick() },
+                onColorPicker = { showPicker.value = true },
                 isUndoActive = viewModel.history.size-1!=0,
                 isRedoActive = viewModel.future.isNotEmpty()
             )
@@ -101,7 +126,10 @@ fun JiytAddAnimationScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.onSaveClick() },
+                    onClick = {
+                        val data = viewModel.convertToJSON(grid.map { it.toList() })
+                        viewModel.onSaveClick(context = context, fileName = "test", jsonData = data)
+                    },
                     shape = RoundedCornerShape(5.dp),
                     colors = ButtonColors(
                         containerColor = Color.Black,

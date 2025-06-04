@@ -1,13 +1,23 @@
 package drazek.jiyt.ui.addAnimScreen
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import drazek.jiyt.util.ToolTypes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.IOException
 
 private const val HISTORY_LIMIT = 50
 
@@ -21,6 +31,9 @@ class JiytAddAnimScreenVM: ViewModel() {
 
     private val _future = mutableStateListOf<List<List<Color>>>()
     val future: List<List<List<Color>>> get() = _future
+
+    private val _toastEvent = MutableSharedFlow<String>()
+    val toastEvent = _toastEvent.asSharedFlow()
 
     fun onPenClick(){
         _tool.value = ToolTypes.Pen
@@ -58,8 +71,36 @@ class JiytAddAnimScreenVM: ViewModel() {
 
     }
 
-    fun onSaveClick(){
+    fun convertToJSON(inGrid: List<List<Color>>): String{
+        val serializableGrid: List<List<Int>> = inGrid.map { row ->
+            row.map{ color ->
+                color.toArgb()
+            }
+        }
 
+        val json = Gson().toJson(serializableGrid)
+
+        return json
+    }
+
+    fun onSaveClick(context: Context, fileName: String, jsonData: String): Boolean{
+        try {
+            val nameWithExt = "$fileName.json"
+
+            val file = File(context.filesDir, nameWithExt)
+            file.writeText(jsonData)
+
+            Log.d("GridSave", jsonData)
+
+            viewModelScope.launch {
+                _toastEvent.emit("Saved to ${context.filesDir}")
+            }
+
+        } catch (e: IOException){
+            return false
+        }
+
+        return true
     }
 
     fun onNextFrameClick(){

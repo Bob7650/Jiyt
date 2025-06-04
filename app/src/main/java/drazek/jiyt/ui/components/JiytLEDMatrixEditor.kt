@@ -24,10 +24,9 @@ import drazek.jiyt.util.ToolTypes
 @Composable
 fun JiytLEDMatrixEditor(
     modifier: Modifier = Modifier,
-    changePixel: (Int, Int, Color) -> Unit,
+    changePixel: (Int, Int) -> Unit,
     seePixel: (Int,Int) -> Color,
     updateGrid: () -> Unit,
-    getTool: () -> ToolTypes
 ) {
     Box(
         modifier = modifier
@@ -48,10 +47,7 @@ fun JiytLEDMatrixEditor(
                     val x = (offset.x / cellSize).toInt().coerceIn(0, GRID_SIZE - 1)
                     val y = (offset.y / cellSize).toInt().coerceIn(0, GRID_SIZE - 1)
 
-                    if(getTool() == ToolTypes.Pen)
-                        changePixel(x,y,Color.White)
-                    else if(getTool() == ToolTypes.Eraser)
-                        changePixel(x,y,Color.Black)
+                    changePixel(x,y)
                     //update (idk if that is nescjksehesry)
                 }
             }
@@ -83,6 +79,6 @@ fun JiytLEDMatrixEditor(
 @Composable
 private fun PrevEditor() {
     JiytTheme {
-        JiytLEDMatrixEditor(changePixel = {x,y,z ->}, seePixel = {x,y -> Color.Black}, updateGrid = {}, getTool = { ToolTypes.Pen })
+        JiytLEDMatrixEditor(changePixel = {x,y->}, seePixel = {x,y -> Color.Black}, updateGrid = {})
     }
 }
