@@ -19,7 +19,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.Composable
-import drazek.jiyt.ui.AnimListScreen
+import drazek.jiyt.ui.JiytAddAnimationScreen
+import drazek.jiyt.ui.JiytViewModelAnimList
 import drazek.jiyt.ui.theme.JiytTheme
 
 class MainActivity : ComponentActivity() {
@@ -96,14 +97,15 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreenView() {
         JiytTheme {
-            AnimListScreen(
-                associationOnClick = { associateOnClick() },
-                logOnClick = { logOnClick() },
-                sendMessageOnClick = { sendMessageOnClick() },
-                selectDevice = { name -> selectDevice(name) },
-                refreshOnClick = { refreshOnClick() },
-                animViewModel
-            )
+//            TestScreen(
+//                associationOnClick = { associateOnClick() },
+//                logOnClick = { logOnClick() },
+//                sendMessageOnClick = { sendMessageOnClick() },
+//                selectDevice = { name -> selectDevice(name) },
+//                refreshOnClick = { refreshOnClick() },
+//                animViewModel
+//            )
+            JiytMainScreen()
         }
     }
 
@@ -220,7 +222,7 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onDestroy() {
-        super.onDestroy()
         animViewModel.terminateConnection()
+        super.onDestroy()
     }
 }

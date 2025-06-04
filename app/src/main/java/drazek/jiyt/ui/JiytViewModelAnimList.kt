@@ -1,7 +1,6 @@
-package drazek.jiyt
+package drazek.jiyt.ui
 
 import android.Manifest
-import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
@@ -13,9 +12,9 @@ import android.widget.Toast
 import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,7 +23,7 @@ import java.io.IOException
 import java.util.UUID
 import java.util.regex.Pattern
 
-class JiytViewModelAnimList(application: Application) : AndroidViewModel(application) {
+class JiytViewModelAnimList : ViewModel() {
     private val _bluetoothAdapter = MutableLiveData<BluetoothAdapter>()
     val bluetoothAdapter: LiveData<BluetoothAdapter> = _bluetoothAdapter
 

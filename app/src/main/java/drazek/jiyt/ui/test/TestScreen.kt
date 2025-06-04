@@ -1,4 +1,4 @@
-package drazek.jiyt.ui
+package drazek.jiyt.ui.test
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,13 +19,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import drazek.jiyt.JiytViewModelAnimList
-import drazek.jiyt.ui.components.JiytModalDrawerSheet
-import drazek.jiyt.ui.components.JiytTopAppBar
+import drazek.jiyt.ui.JiytViewModelAnimList
 import kotlinx.coroutines.launch
 
 @Composable
-fun AnimListScreen(
+fun TestScreen(
     associationOnClick: () -> Unit,
     logOnClick: () -> Unit,
     sendMessageOnClick: () -> Unit,
@@ -45,7 +43,7 @@ fun AnimListScreen(
     ) {
         Scaffold(
             topBar = {
-                JiytTopAppBar(onClick = {
+                TestTopAppBar(onClick = {
                     if (it == "menu"){
                         scope.launch {
                             drawerState.apply {
@@ -132,7 +130,7 @@ fun AnimListScreen(
 
 @Preview
 @Composable
-private fun prevDeviceRow() {
+private fun PrevDeviceRow() {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

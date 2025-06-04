@@ -1,4 +1,4 @@
-package drazek.jiyt.ui.components
+package drazek.jiyt.ui.test
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
