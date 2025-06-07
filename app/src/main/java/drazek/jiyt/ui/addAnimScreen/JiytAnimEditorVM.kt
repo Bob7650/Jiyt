@@ -4,12 +4,11 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import drazek.jiyt.util.JiytAnimListEntry
 import drazek.jiyt.util.ToolTypes
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,11 +16,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.IOException
 
 private const val HISTORY_LIMIT = 50
 
-class JiytAddAnimScreenVM: ViewModel() {
+class JiytAnimEditorVM: ViewModel() {
 
     private val _tool = MutableStateFlow(ToolTypes.Pen)
     val tool: StateFlow<ToolTypes> = _tool.asStateFlow()
@@ -49,21 +47,25 @@ class JiytAddAnimScreenVM: ViewModel() {
             _future.removeAt(_future.size-1)
             return _history.last()
         }
-        //Log.e("popFuture", "Returned Null")
         return null
     }
 
     fun popHistory(): List<List<Color>>?{
-        //Log.e("Drawing", "undo() called!")
+
+        // Checking if history has more than 1 (one) entry
         if(_history.size > 1) {
+
+            // Adding current state to future so user can go back to it if needed
             _future.add(_history.last())
+
+            // Removing current state from history
             _history.removeAt(_history.size - 1)
+
+            // Returning previous state to display
             return _history.last()
         }
-        return null
-    }
 
-    fun onColorClick(){
+        return null
 
     }
 
@@ -71,36 +73,35 @@ class JiytAddAnimScreenVM: ViewModel() {
 
     }
 
-    fun convertToJSON(inGrid: List<List<Color>>): String{
-        val serializableGrid: List<List<Int>> = inGrid.map { row ->
-            row.map{ color ->
-                color.toArgb()
+    fun saveDataToFile(context: Context, fileName: String, data: List<List<Color>>){
+
+        // Sending data to serializable structure
+        // 1. Converting Color because it's not serializable
+        val serializableGrid: List<List<List<Int>>> = data.map { row ->
+            row.map { color ->
+                listOf((color.green*255).toInt(), (color.red*255).toInt(), (color.blue*255).toInt())
             }
         }
 
-        val json = Gson().toJson(serializableGrid)
+        // 2. Saving to custom structure
+        val animListEntry = JiytAnimListEntry(
+            fileName = fileName,
+            frameRate = 5.0,
+            data = serializableGrid
+        )
 
-        return json
-    }
+        // Converting to json
+        val jsonData = Gson().toJson(animListEntry)
+        Log.d("onSaveClick", jsonData)
 
-    fun onSaveClick(context: Context, fileName: String, jsonData: String): Boolean{
-        try {
-            val nameWithExt = "$fileName.json"
+        // Creating file with filesDir destination
+        val file = File(context.filesDir, fileName)
 
-            val file = File(context.filesDir, nameWithExt)
-            file.writeText(jsonData)
+        // Writing to file
+        file.writeText(jsonData)
 
-            Log.d("GridSave", jsonData)
-
-            viewModelScope.launch {
-                _toastEvent.emit("Saved to ${context.filesDir}")
-            }
-
-        } catch (e: IOException){
-            return false
-        }
-
-        return true
+        // Display toast
+        sendToastSignal("Saved!")
     }
 
     fun onNextFrameClick(){
@@ -108,12 +109,29 @@ class JiytAddAnimScreenVM: ViewModel() {
     }
 
     fun saveGridState(listToSave: List<List<Color>>){
+
+        // Clearing future
         _future.clear()
-        //Log.e("saveGridState","Drag ended. Added to history")
+
+        // Adding current position to history
         _history.add(listToSave)
+
+        // Checking if exceeding history size and removing oldest entry when true
         if(_history.size > HISTORY_LIMIT){
-            //Log.e("saveGridState","History limit reached. Removing oldest")
             _history.removeAt(0)
+        }
+
+    }
+
+    fun nameAvailable(name: String, context: Context): Boolean{
+        var files: Array<String> = context.fileList()
+
+        return name !in files
+    }
+
+    fun sendToastSignal(text: String){
+        viewModelScope.launch {
+            _toastEvent.emit(text)
         }
     }
 }

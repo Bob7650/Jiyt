@@ -39,7 +39,9 @@ import drazek.jiyt.ui.theme.JiytTheme
 
 @Composable
 fun JiytExpandableListElement(
-    item: Int,
+    elementTitle: String,
+    onSettingsClick: () -> Unit,
+    onPlayAnimationClick: () -> Unit,
     defaultState: Boolean = false) {
     var expanded by remember { mutableStateOf(defaultState) }
 
@@ -61,7 +63,7 @@ fun JiytExpandableListElement(
                     .clickable { expanded = !expanded }
             ){
                 Text(
-                    text = "Animation Name $item",
+                    text = elementTitle,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
@@ -89,17 +91,19 @@ fun JiytExpandableListElement(
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
                     ){
+                        // PLAY ANIMATION BUTTON
                         Button(
                             modifier = Modifier.padding(end = 5.dp),
                             shape = RoundedCornerShape(5.dp),
-                            onClick = {}) {
+                            onClick = onPlayAnimationClick) {
                             Text(text = "Play animation")
                         }
 
+                        // SETTINGS BUTTON
                         Button(
                             modifier = Modifier.padding(start = 5.dp),
                             shape = RoundedCornerShape(5.dp),
-                            onClick = {}) {
+                            onClick = onSettingsClick) {
                             Icon(imageVector = Icons.Filled.Settings, contentDescription = null)
                         }
                     }
@@ -113,7 +117,7 @@ fun JiytExpandableListElement(
 @Composable
 private fun PrevExpElement() {
     JiytTheme {
-        JiytExpandableListElement(item = 1)
+        JiytExpandableListElement("Example animation", {}, {})
     }
 }
 
@@ -121,6 +125,6 @@ private fun PrevExpElement() {
 @Composable
 private fun PrevExpElementExpanded() {
     JiytTheme {
-        JiytExpandableListElement(item = 1, defaultState = true)
+        JiytExpandableListElement(elementTitle = "Example animation", {}, {}, defaultState = true)
     }
 }
