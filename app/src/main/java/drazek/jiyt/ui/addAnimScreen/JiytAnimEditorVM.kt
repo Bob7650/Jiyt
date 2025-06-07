@@ -5,9 +5,11 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
-import drazek.jiyt.util.JiytAnimListEntry
+import drazek.jiyt.ui.data.JiytAnimListEntry
+import drazek.jiyt.util.JiytStorageManager
 import drazek.jiyt.util.ToolTypes
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,7 @@ import java.io.File
 
 private const val HISTORY_LIMIT = 50
 
-class JiytAnimEditorVM: ViewModel() {
+class JiytAnimEditorVM(storageManager: JiytStorageManager): ViewModel() {
 
     private val _tool = MutableStateFlow(ToolTypes.Pen)
     val tool: StateFlow<ToolTypes> = _tool.asStateFlow()
@@ -73,7 +75,16 @@ class JiytAnimEditorVM: ViewModel() {
 
     }
 
-    fun saveDataToFile(context: Context, fileName: String, data: List<List<Color>>){
+    fun saveDataToFile(fileName: String, data: List<List<Color>>, context: Context, subDirName: String = "animations"){
+
+        // Making a path name to sub-directory
+        val subDir = File(context.filesDir, subDirName)
+
+        // Creating sub-directory if it does not exist
+        if(!subDir.exists()){
+            subDir.mkdirs()
+            Log.d("saveData", "Created dir $subDir")
+        }
 
         // Sending data to serializable structure
         // 1. Converting Color because it's not serializable
@@ -92,10 +103,9 @@ class JiytAnimEditorVM: ViewModel() {
 
         // Converting to json
         val jsonData = Gson().toJson(animListEntry)
-        Log.d("onSaveClick", jsonData)
 
         // Creating file with filesDir destination
-        val file = File(context.filesDir, fileName)
+        val file = File(subDir, fileName)
 
         // Writing to file
         file.writeText(jsonData)
@@ -133,5 +143,15 @@ class JiytAnimEditorVM: ViewModel() {
         viewModelScope.launch {
             _toastEvent.emit(text)
         }
+    }
+}
+
+class JiytAnimEditorVMFactory(private val context: Context): ViewModelProvider.Factory{
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        val storageManager = JiytStorageManager(context)
+        if(modelClass.isAssignableFrom(JiytAnimEditorVM::class.java)){
+            return JiytAnimEditorVM(storageManager) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

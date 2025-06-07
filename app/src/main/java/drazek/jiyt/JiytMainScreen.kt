@@ -1,31 +1,21 @@
 package drazek.jiyt
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import drazek.jiyt.ui.addAnimScreen.JiytAnimEditorScreen
-import drazek.jiyt.ui.animListScreen.JiytAnimListScreen
 import drazek.jiyt.ui.JiytViewModelAnimList
 import drazek.jiyt.ui.addAnimScreen.JiytAnimEditorArgs
-import drazek.jiyt.util.JiytAnimListEntry
+import drazek.jiyt.ui.addAnimScreen.JiytAnimEditorScreen
+import drazek.jiyt.ui.animListScreen.JiytAnimListArgs
+import drazek.jiyt.ui.animListScreen.JiytAnimListScreen
+import drazek.jiyt.ui.data.JiytAnimListEntry
 import kotlinx.serialization.Serializable
-import kotlin.collections.List
 
-enum class JiytMainScreen{
-    Home,
-    AnimEditor
-}
-
-// TODO: add top app bar here so u dont have to pass data through two composables
-// TODO: finish the navigation
 @Composable
 fun JiytMainScreen(
     viewModel: JiytViewModelAnimList = viewModel(),
@@ -33,9 +23,9 @@ fun JiytMainScreen(
 ) {
     NavHost(
         navController = navController,
-        startDestination = ScreenA,
+        startDestination = JiytAnimListArgs,
     ){
-        composable<ScreenA>{
+        composable<JiytAnimListArgs>{
             JiytAnimListScreen(
                 navToAnimEditor = { jsonEntry: String ->
                     navController.navigate(JiytAnimEditorArgs(jsonEntry))
@@ -61,6 +51,3 @@ fun JiytMainScreen(
         }
     }
 }
-
-@Serializable
-object ScreenA

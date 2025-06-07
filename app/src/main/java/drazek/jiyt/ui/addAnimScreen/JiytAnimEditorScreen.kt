@@ -21,7 +21,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,8 +38,8 @@ import drazek.jiyt.ui.components.JiytLEDMatrixEditor
 import drazek.jiyt.ui.components.JiytSavePopup
 import drazek.jiyt.ui.components.JiytToolBar
 import drazek.jiyt.ui.components.JiytTopAppBar
+import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.ui.theme.JiytTheme
-import drazek.jiyt.util.JiytAnimListEntry
 import drazek.jiyt.util.ToolTypes
 
 const val GRID_SIZE = 16
@@ -53,7 +52,9 @@ const val GRID_SIZE = 16
 fun JiytAnimEditorScreen(
     navigateBack: () -> Unit,
     animEntry: JiytAnimListEntry? = null,
-    viewModel: JiytAnimEditorVM = viewModel()
+    viewModel: JiytAnimEditorVM = viewModel(
+        factory = JiytAnimEditorVMFactory (LocalContext.current)
+    )
 ) {
     /*
      *
@@ -63,13 +64,14 @@ fun JiytAnimEditorScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
 
+    val hasFileAssociated = remember { mutableStateOf(animEntry!=null) }
     val remFileName = remember { mutableStateOf(animEntry?.fileName ?: "New Animation.json") }
 
     val grid = remember {
-        if (animEntry==null)
+        if (!hasFileAssociated.value)
             mutableStateListOf(*Array(GRID_SIZE) { mutableStateListOf(*Array(GRID_SIZE) { Color.Black }) } )
         else
-            animEntry.data.map { row ->
+            animEntry!!.data.map { row ->
                     row.map { colorInt->
                         Color(green = colorInt[0]/255f, red = colorInt[1]/255f, blue = colorInt[2]/255f, alpha = 1f)
                     }.toMutableStateList()
@@ -119,6 +121,8 @@ fun JiytAnimEditorScreen(
                         context = context,
                         fileName = remFileName.value,
                         data = grid.map { it.toList() })
+
+                    hasFileAssociated.value = true
                 }else{
                     viewModel.sendToastSignal("The name is already in use")
                 }
@@ -131,7 +135,18 @@ fun JiytAnimEditorScreen(
      */
 
     Scaffold(
-        topBar = { JiytTopAppBar(title = remFileName.value,canGoBack = true, onBackClicked = navigateBack) }
+        topBar = {
+            JiytTopAppBar(
+                title = remFileName.value,
+                canGoBack = true,
+                onBackClicked = navigateBack,
+                canBeRemoved = hasFileAssociated.value,
+                onRemoveClick = {
+                    // TODO: remove file
+                    navigateBack()
+                }
+            )
+        }
     ) { contentPadding->
         Column(
             modifier = Modifier.padding(contentPadding)
@@ -200,7 +215,7 @@ fun JiytAnimEditorScreen(
                 Button(
                     onClick = {
                         // Check if there is a file associated
-                        if(animEntry==null) {
+                        if(!hasFileAssociated.value) {
                             // Ask for file name (display popup)
                             showSavePopup.value = true
                         }else{
