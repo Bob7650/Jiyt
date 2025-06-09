@@ -6,10 +6,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import com.google.gson.Gson
 import drazek.jiyt.ui.data.JiytAnimListEntry
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 
 class JiytStorageManager(context: Context) {
 
+    // Directory where animations are stored
     val animDir = File(context.filesDir, "animations")
 
     init{
@@ -23,53 +27,25 @@ class JiytStorageManager(context: Context) {
 
     fun updateEntriesFromStorage(){
 
+        Log.d("StorageManager", "Updating entries from $animDir")
+
+        _animListEntries.clear()
+
         // Get all names
-        val listOfFiles = animDir.listFiles()?.map{
-            it.name
-        }?.toMutableList() ?: mutableListOf()
+        val listOfFiles = listFilesOnDevice()
 
-        // Remove names that we already store
-        _animListEntries.forEach {
-            listOfFiles.remove(it.fileName)
+        // Map only correct entries to loadedEntries (ones that can be successfully converted)
+        val loadedEntries = listOfFiles.mapNotNull { fileName ->
+            getEntryClassFromName(fileName)
         }
 
-        // Turn files into instances of JiytAnimListEntry
-        if(listOfFiles.isNotEmpty()) {
-
-            // Map only correct entries to loadedEntries (ones that can be successfully converted)
-            val loadedEntries = listOfFiles.mapNotNull { fileName ->
-                try {
-                    Gson().fromJson(
-                        getFileContentsByName(fileName),
-                        JiytAnimListEntry::class.java
-                    )
-                } catch (e: Exception) {
-                    Log.d("loadEntries", "Skipping $fileName")
-                    null
-                }
-            }
-
-            // Add all created instances to our list
-            loadedEntries.forEach {
-                _animListEntries.add(it)
-            }
-            Log.d("updateEntries", "Loaded data from $animDir")
-        }
-
+        // Add all created instances to our list
+        _animListEntries.addAll(loadedEntries)
     }
 
-    fun getFileContentsByName(fileName: String): String{
-        // Get reference to a file
-        val file = File(animDir, fileName)
-
-        // Read data as string
-        val data = file.readText()
-
-        return data
-    }
-
-    fun saveDataToFile(fileName: String, data: List<List<Color>>): Boolean{
+    fun saveDataToFile(fileName: String, data: List<List<Color>>){
         try {
+            Log.d("StorageManager", "Saving $fileName to $animDir")
 
             // Sending data to serializable structure
             // 1. Converting Color because it's not serializable
@@ -100,9 +76,69 @@ class JiytStorageManager(context: Context) {
             file.writeText(jsonData)
 
         }catch (e: Exception){
-            return false
+            Log.e("StorageManager", "Unable to save $fileName: ${e.message}")
         }
-        return true
     }
 
+    fun checkIfNameAvailable(name: String): Boolean{
+        return name !in listFilesOnDevice()
+    }
+
+    fun getFileDataFromName(fileName: String): String{
+        var data = ""
+        try {
+            Log.d("StorageManager", "Loading data from $fileName")
+            // Get reference to a file
+            val file = File(animDir, fileName)
+
+            // Read data as string
+            data = file.readText()
+        }catch (e: IOException){
+            Log.e("StorageManager", "Unable to load data from $fileName")
+        }
+        return data
+    }
+
+    fun getEntryClassFromName(fileName: String): JiytAnimListEntry?{
+
+        var entryObject: JiytAnimListEntry?
+
+        try {
+            Log.d("StorageManager", "Converting $fileName to a JiytAnimListEntry")
+            // Using Gson library to convert json back to object
+            entryObject = Gson().fromJson(
+                getFileDataFromName(fileName),
+                JiytAnimListEntry::class.java
+            )
+        } catch (e: Exception) {
+            Log.e("StorageManager", "Unable to transform $fileName to JiytAnimListEntry. Skipping! Exception: ${e.message}")
+            return null
+        }
+
+        return entryObject
+    }
+
+    // Needs to be launched in scope. Code after it can only be executed after this function finishes
+    suspend fun removeFileFromStorage(fileName: String){
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d("StorageManager", "Removing file $fileName from storage")
+                // Remove file from storage
+                File(animDir, fileName).delete()
+            } catch (e: IOException) {
+                Log.e("StorageManager", "Failed to remove the file: ${e.message}")
+            }finally {
+                // Update entries always (coz why not)
+                updateEntriesFromStorage()
+            }
+        }
+    }
+
+    /**
+     *  PRIVATE FUNCTIONS
+    **/
+
+    private fun listFilesOnDevice(): MutableList<String>{
+        return animDir.list()?.toMutableList() ?: mutableListOf()
+    }
 }

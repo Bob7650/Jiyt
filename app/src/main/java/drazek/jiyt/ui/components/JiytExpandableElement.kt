@@ -4,8 +4,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,19 +38,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import drazek.jiyt.R
 import drazek.jiyt.ui.theme.JiytTheme
+import kotlin.math.exp
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun JiytExpandableListElement(
     elementTitle: String,
     onSettingsClick: () -> Unit,
     onPlayAnimationClick: () -> Unit,
+    onLongPress: (String) -> Unit,
     defaultState: Boolean = false) {
     var expanded by remember { mutableStateOf(defaultState) }
+
+    val haptics = LocalHapticFeedback.current
 
     Card(
         modifier = Modifier
@@ -65,7 +74,17 @@ fun JiytExpandableListElement(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                    .combinedClickable(
+                        onClick = {
+                            expanded = !expanded
+                        },
+                        onLongClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            // display bottom sheet
+                            onLongPress(elementTitle)
+                        },
+                        onLongClickLabel = "Siema"
+                    )
             ){
                 Text(
                     text = elementTitle,
@@ -122,7 +141,7 @@ fun JiytExpandableListElement(
 @Composable
 private fun PrevExpElement() {
     JiytTheme {
-        JiytExpandableListElement("Example animation", {}, {})
+        JiytExpandableListElement("Example animation", {}, {}, {})
     }
 }
 
@@ -130,6 +149,6 @@ private fun PrevExpElement() {
 @Composable
 private fun PrevExpElementExpanded() {
     JiytTheme {
-        JiytExpandableListElement(elementTitle = "Example animation", {}, {}, defaultState = true)
+        JiytExpandableListElement(elementTitle = "Example animation", {}, {}, {}, defaultState = true)
     }
 }

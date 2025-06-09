@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import drazek.jiyt.ui.components.JiytColorPickerPopup
 import drazek.jiyt.ui.components.JiytLEDMatrixEditor
@@ -41,6 +43,9 @@ import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.ui.theme.JiytTheme
 import drazek.jiyt.util.ToolTypes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 const val GRID_SIZE = 16
 
@@ -111,14 +116,13 @@ fun JiytAnimEditorScreen(
                 showSavePopup.value = false
             },
             onConfirm = { inValue ->
-                if(viewModel.nameAvailable(name = inValue,context = context)) {
+                if(viewModel.storageManager.checkIfNameAvailable(name = inValue)) {
 
                     // Change name displayed by top bar
                     remFileName.value = inValue
 
                     // Save to file
-                    viewModel.saveDataToFile(
-                        context = context,
+                    viewModel.storageManager.saveDataToFile(
                         fileName = remFileName.value,
                         data = grid.map { it.toList() })
 
@@ -140,11 +144,6 @@ fun JiytAnimEditorScreen(
                 title = remFileName.value,
                 canGoBack = true,
                 onBackClicked = navigateBack,
-                canBeRemoved = hasFileAssociated.value,
-                onRemoveClick = {
-                    // TODO: remove file
-                    navigateBack()
-                }
             )
         }
     ) { contentPadding->
@@ -219,7 +218,7 @@ fun JiytAnimEditorScreen(
                             // Ask for file name (display popup)
                             showSavePopup.value = true
                         }else{
-                            viewModel.saveDataToFile(context = context, fileName = remFileName.value, data = grid.map { it.toList() })
+                            viewModel.storageManager.saveDataToFile(fileName = remFileName.value, data = grid.map { it.toList() })
                         }
                     },
                     shape = RoundedCornerShape(5.dp),

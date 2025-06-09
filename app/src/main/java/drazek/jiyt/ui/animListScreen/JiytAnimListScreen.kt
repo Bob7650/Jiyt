@@ -3,19 +3,29 @@ package drazek.jiyt.ui.animListScreen
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import drazek.jiyt.ui.components.JiytBottomSheet
 import drazek.jiyt.ui.components.JiytExpandableListElement
 import drazek.jiyt.ui.components.JiytFloatingActionButton
 import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.theme.JiytTheme
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JiytAnimListScreen(
     navToAnimEditor: (String) -> Unit,
@@ -26,26 +36,63 @@ fun JiytAnimListScreen(
 ) {
 
     val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    val entries = viewModel.storageManager.animListEntries
+
+    var selectedEntry: String = ""
 
     // Every time this screen is loaded update viewModel.animListEntries
+
     LaunchedEffect(Unit) {
-        viewModel.updateEntriesFromStorage(context)
+        viewModel.storageManager.updateEntriesFromStorage()
     }
+
 
     Scaffold(
         topBar = { JiytTopAppBar(title = "Animations list", canGoBack = false) },
         floatingActionButton = { JiytFloatingActionButton({navToAnimEditor("")}) }
     ) { contentPadding ->
+
+        // LAZY COLUMN
         LazyColumn(Modifier.padding(contentPadding)) {
-            items(viewModel.animListEntries) { entry ->
+            items(entries) { entry ->
 
                 JiytExpandableListElement(
                     elementTitle = entry.fileName,
                     onSettingsClick = {
-                        navToAnimEditor(viewModel.getFileContentsByName(fileName = entry.fileName,context = context))
+                        navToAnimEditor(viewModel.storageManager.getFileDataFromName(fileName = entry.fileName))
                     },
-                    onPlayAnimationClick = {})
+                    onPlayAnimationClick = {},
+                    onLongPress = { elementTitle ->
+                        showBottomSheet = true
+                        selectedEntry = elementTitle
+                    }
+                )
             }
+        }
+
+        // BOTTOM SHEET
+        if(showBottomSheet){
+            JiytBottomSheet(
+                onDelete = {
+                    scope.launch {
+                        viewModel.storageManager.removeFileFromStorage(selectedEntry)
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        if(!sheetState.isVisible){
+                            showBottomSheet = false
+                        }
+                    }
+
+                },
+                onDismiss = {
+                    showBottomSheet = false
+                },
+                sheetState = sheetState,
+            )
         }
     }
 

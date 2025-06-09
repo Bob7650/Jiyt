@@ -1,27 +1,25 @@
 package drazek.jiyt.ui.addAnimScreen
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.util.JiytStorageManager
 import drazek.jiyt.util.ToolTypes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.withContext
 
 private const val HISTORY_LIMIT = 50
 
-class JiytAnimEditorVM(storageManager: JiytStorageManager): ViewModel() {
+class JiytAnimEditorVM(val storageManager: JiytStorageManager): ViewModel() {
 
     private val _tool = MutableStateFlow(ToolTypes.Pen)
     val tool: StateFlow<ToolTypes> = _tool.asStateFlow()
@@ -34,6 +32,7 @@ class JiytAnimEditorVM(storageManager: JiytStorageManager): ViewModel() {
 
     private val _toastEvent = MutableSharedFlow<String>()
     val toastEvent = _toastEvent.asSharedFlow()
+
 
     fun onPenClick(){
         _tool.value = ToolTypes.Pen
@@ -75,51 +74,11 @@ class JiytAnimEditorVM(storageManager: JiytStorageManager): ViewModel() {
 
     }
 
-    fun saveDataToFile(fileName: String, data: List<List<Color>>, context: Context, subDirName: String = "animations"){
-
-        // Making a path name to sub-directory
-        val subDir = File(context.filesDir, subDirName)
-
-        // Creating sub-directory if it does not exist
-        if(!subDir.exists()){
-            subDir.mkdirs()
-            Log.d("saveData", "Created dir $subDir")
-        }
-
-        // Sending data to serializable structure
-        // 1. Converting Color because it's not serializable
-        val serializableGrid: List<List<List<Int>>> = data.map { row ->
-            row.map { color ->
-                listOf((color.green*255).toInt(), (color.red*255).toInt(), (color.blue*255).toInt())
-            }
-        }
-
-        // 2. Saving to custom structure
-        val animListEntry = JiytAnimListEntry(
-            fileName = fileName,
-            frameRate = 5.0,
-            data = serializableGrid
-        )
-
-        // Converting to json
-        val jsonData = Gson().toJson(animListEntry)
-
-        // Creating file with filesDir destination
-        val file = File(subDir, fileName)
-
-        // Writing to file
-        file.writeText(jsonData)
-
-        // Display toast
-        sendToastSignal("Saved!")
-    }
-
     fun onNextFrameClick(){
 
     }
 
     fun saveGridState(listToSave: List<List<Color>>){
-
         // Clearing future
         _future.clear()
 
@@ -133,10 +92,11 @@ class JiytAnimEditorVM(storageManager: JiytStorageManager): ViewModel() {
 
     }
 
-    fun nameAvailable(name: String, context: Context): Boolean{
-        var files: Array<String> = context.fileList()
+    fun saveDataToFile(fileName: String, data: List<List<Color>>){
+        storageManager.saveDataToFile(fileName, data)
 
-        return name !in files
+        // Display toast
+        sendToastSignal("Saved!")
     }
 
     fun sendToastSignal(text: String){
