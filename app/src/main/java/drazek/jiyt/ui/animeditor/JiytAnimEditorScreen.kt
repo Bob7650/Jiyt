@@ -1,4 +1,4 @@
-package drazek.jiyt.ui.addAnimScreen
+package drazek.jiyt.ui.animeditor
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -24,16 +24,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import drazek.jiyt.ui.components.JiytColorPickerPopup
 import drazek.jiyt.ui.components.JiytLEDMatrixEditor
@@ -41,17 +37,9 @@ import drazek.jiyt.ui.components.JiytSavePopup
 import drazek.jiyt.ui.components.JiytToolBar
 import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.data.JiytAnimListEntry
-import drazek.jiyt.ui.theme.JiytTheme
-import drazek.jiyt.util.ToolTypes
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import drazek.jiyt.ui.data.ToolTypes
 
 const val GRID_SIZE = 16
-
-/* TODO: Rename to Edit animation screen, require JiytAnimListEntry
- *
- */
 
 @Composable
 fun JiytAnimEditorScreen(
@@ -61,17 +49,18 @@ fun JiytAnimEditorScreen(
         factory = JiytAnimEditorVMFactory (LocalContext.current)
     )
 ) {
-    /*
-     *
+    /**
+     * VARIABLES
      */
 
-    // Basic variables
     val context = LocalContext.current
+
+    // Variable for controlling focus
     val focusManager = LocalFocusManager.current
 
+    // Mutable values that composable needs to react to
     val hasFileAssociated = remember { mutableStateOf(animEntry!=null) }
     val remFileName = remember { mutableStateOf(animEntry?.fileName ?: "New Animation.json") }
-
     val grid = remember {
         if (!hasFileAssociated.value)
             mutableStateListOf(*Array(GRID_SIZE) { mutableStateListOf(*Array(GRID_SIZE) { Color.Black }) } )
@@ -83,19 +72,17 @@ fun JiytAnimEditorScreen(
             }.toMutableStateList()
     }
 
-
-    // Signal receiver
-    LaunchedEffect(Unit) { 
+    LaunchedEffect(Unit) {
+        // Signal receiver for "Saved!" message
         viewModel.toastEvent.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         }
     }
 
-    /*
-     *
-     */
 
-    // Color Picker Popup
+    /**
+     * COLOR PICKER
+     */
     var showPicker = remember { mutableStateOf(false) }
     var selectedColor = remember { mutableStateOf(Color.White) }
 
@@ -106,7 +93,9 @@ fun JiytAnimEditorScreen(
         )
     }
 
-    // Save popup
+    /**
+     * SAVE POPUP
+     */
     var showSavePopup = remember { mutableStateOf(false) }
 
     if(showSavePopup.value){
@@ -120,21 +109,26 @@ fun JiytAnimEditorScreen(
 
                     // Change name displayed by top bar
                     remFileName.value = inValue
-
                     // Save to file
                     viewModel.storageManager.saveDataToFile(
                         fileName = remFileName.value,
-                        data = grid.map { it.toList() })
-
+                        data = grid.map { it.toList()
+                        })
+                    // Remember that the file is associated
                     hasFileAssociated.value = true
+                    // Send feedback to user
+                    viewModel.sendToastSignal("Saved!")
+
                 }else{
-                    viewModel.sendToastSignal("The name is already in use")
+                    viewModel.sendToastSignal("That name is already in use")
                 }
             }
         )
     }
 
-    /*
+    /**
+     *
+     * COMPOSABLE FUNCTIONS
      *
      */
 
@@ -147,6 +141,7 @@ fun JiytAnimEditorScreen(
             )
         }
     ) { contentPadding->
+        // Main column container
         Column(
             modifier = Modifier.padding(contentPadding)
                 .clickable(
@@ -193,6 +188,7 @@ fun JiytAnimEditorScreen(
                 isRedoActive = viewModel.future.isNotEmpty()
             )
 
+            // SPACER
             Spacer(modifier = Modifier.weight(1f))
 
             // BOTTOM BUTTONS
@@ -243,18 +239,5 @@ fun JiytAnimEditorScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    device = Devices.PIXEL_7_PRO,
-)
-@Composable
-private fun PrevScreen() {
-    JiytTheme {
-        JiytAnimEditorScreen(
-            navigateBack = {})
     }
 }

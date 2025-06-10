@@ -1,4 +1,4 @@
-package drazek.jiyt.ui.animListScreen
+package drazek.jiyt.ui.animlist
 
 import kotlinx.serialization.Serializable
 

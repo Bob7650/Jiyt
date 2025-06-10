@@ -1,4 +1,4 @@
-package drazek.jiyt.util
+package drazek.jiyt.ui.data
 
 enum class ToolTypes {
     Eraser,

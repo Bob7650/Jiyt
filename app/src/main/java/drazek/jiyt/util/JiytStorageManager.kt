@@ -22,6 +22,7 @@ class JiytStorageManager(context: Context) {
         }
     }
 
+    // Variable with entries exposed to Compose screens
     private val _animListEntries = mutableStateListOf<JiytAnimListEntry>()
     val animListEntries: List<JiytAnimListEntry> get() = _animListEntries
 
@@ -84,6 +85,7 @@ class JiytStorageManager(context: Context) {
         return name !in listFilesOnDevice()
     }
 
+    // Returns contents of the file
     fun getFileDataFromName(fileName: String): String{
         var data = ""
         try {
@@ -99,6 +101,7 @@ class JiytStorageManager(context: Context) {
         return data
     }
 
+    // Returns a JiytAnimListEntry class or null
     fun getEntryClassFromName(fileName: String): JiytAnimListEntry?{
 
         var entryObject: JiytAnimListEntry?
@@ -119,6 +122,7 @@ class JiytStorageManager(context: Context) {
     }
 
     // Needs to be launched in scope. Code after it can only be executed after this function finishes
+    // Removes file from the storage
     suspend fun removeFileFromStorage(fileName: String){
         withContext(Dispatchers.IO) {
             try {

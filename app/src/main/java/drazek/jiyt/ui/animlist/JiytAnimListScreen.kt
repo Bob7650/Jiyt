@@ -1,4 +1,4 @@
-package drazek.jiyt.ui.animListScreen
+package drazek.jiyt.ui.animlist
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,14 +15,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import drazek.jiyt.ui.components.JiytBottomSheet
 import drazek.jiyt.ui.components.JiytExpandableListElement
 import drazek.jiyt.ui.components.JiytFloatingActionButton
 import drazek.jiyt.ui.components.JiytTopAppBar
-import drazek.jiyt.ui.theme.JiytTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,21 +32,32 @@ fun JiytAnimListScreen(
     )
 ) {
 
+    /**
+     * VARIABLES
+     */
     val context = LocalContext.current
+
+    // Controlling the bottom sheet
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
 
+    // Entries for lazy column
     val entries = viewModel.storageManager.animListEntries
 
-    var selectedEntry: String = ""
+    // Entry that called the bottom sheet
+    var selectedEntry = ""
 
-    // Every time this screen is loaded update viewModel.animListEntries
-
+    // Update entries every time user enters this screen
     LaunchedEffect(Unit) {
         viewModel.storageManager.updateEntriesFromStorage()
     }
 
+    /**
+     *
+     * COMPOSABLE FUNCTIONS
+     *
+     */
 
     Scaffold(
         topBar = { JiytTopAppBar(title = "Animations list", canGoBack = false) },
@@ -96,16 +104,4 @@ fun JiytAnimListScreen(
         }
     }
 
-}
-
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-    device = Devices.PIXEL_7_PRO,
-)
-@Composable
-private fun PrevScreen() {
-    JiytTheme {
-        JiytAnimListScreen({})
-    }
 }

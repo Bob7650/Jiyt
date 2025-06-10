@@ -1,4 +1,4 @@
-package drazek.jiyt.ui.addAnimScreen
+package drazek.jiyt.ui.animeditor
 
 import kotlinx.serialization.Serializable
 
