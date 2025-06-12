@@ -104,9 +104,8 @@ class JiytAnimEditorVM(val storageManager: JiytStorageManager): ViewModel() {
  * FACTORY
  **/
 
-class JiytAnimEditorVMFactory(private val context: Context): ViewModelProvider.Factory{
+class JiytAnimEditorVMFactory(private val storageManager: JiytStorageManager): ViewModelProvider.Factory{
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        val storageManager = JiytStorageManager(context)
         if(modelClass.isAssignableFrom(JiytAnimEditorVM::class.java)){
             return JiytAnimEditorVM(storageManager) as T
         }

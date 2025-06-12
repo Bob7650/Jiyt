@@ -13,10 +13,12 @@ import java.io.IOException
 
 class JiytStorageManager(context: Context) {
 
-    // Directory where animations are stored
-    val animDir = File(context.filesDir, "animations")
+    private val appContext = context.applicationContext
+
+    val animDir = File(appContext.filesDir, "animations")
 
     init{
+        // Setting up the directory where animations are stored
         if(!animDir.exists()){
             animDir.mkdir()
         }
@@ -53,8 +55,8 @@ class JiytStorageManager(context: Context) {
             val serializableGrid: List<List<List<Int>>> = data.map { row ->
                 row.map { color ->
                     listOf(
-                        (color.green * 255).toInt(),
                         (color.red * 255).toInt(),
+                        (color.green * 255).toInt(),
                         (color.blue * 255).toInt()
                     )
                 }

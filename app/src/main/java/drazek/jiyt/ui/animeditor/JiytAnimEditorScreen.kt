@@ -45,9 +45,7 @@ const val GRID_SIZE = 16
 fun JiytAnimEditorScreen(
     navigateBack: () -> Unit,
     animEntry: JiytAnimListEntry? = null,
-    viewModel: JiytAnimEditorVM = viewModel(
-        factory = JiytAnimEditorVMFactory (LocalContext.current)
-    )
+    viewModel: JiytAnimEditorVM
 ) {
     /**
      * VARIABLES

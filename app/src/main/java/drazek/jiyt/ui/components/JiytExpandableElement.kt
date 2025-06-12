@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import drazek.jiyt.R
@@ -52,7 +53,7 @@ import kotlin.math.exp
 fun JiytExpandableListElement(
     elementTitle: String,
     onSettingsClick: () -> Unit,
-    onPlayAnimationClick: () -> Unit,
+    onPlayAnimationClick: (String) -> Unit,
     onLongPress: (String) -> Unit,
     defaultState: Boolean = false) {
     var expanded by remember { mutableStateOf(defaultState) }
@@ -83,7 +84,7 @@ fun JiytExpandableListElement(
                             // display bottom sheet
                             onLongPress(elementTitle)
                         },
-                        onLongClickLabel = "Siema"
+                        onLongClickLabel = "Animation Options"
                     )
             ){
                 Text(
@@ -111,6 +112,7 @@ fun JiytExpandableListElement(
                             .height(300.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
+
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxWidth()
@@ -119,8 +121,10 @@ fun JiytExpandableListElement(
                         Button(
                             modifier = Modifier.padding(end = 5.dp),
                             shape = RoundedCornerShape(5.dp),
-                            onClick = onPlayAnimationClick) {
-                            Text(text = "Play animation")
+                            onClick = {
+                                onPlayAnimationClick(elementTitle)
+                            }) {
+                            Text(text = "Display")
                         }
 
                         // SETTINGS BUTTON

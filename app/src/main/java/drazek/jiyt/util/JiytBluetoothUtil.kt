@@ -1,234 +1,229 @@
 package drazek.jiyt.util
 
-class JiytBluetoothUtil {
-
-    /*
-    package drazek.jiyt
-
 import android.Manifest
-import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
+import android.companion.AssociationRequest
+import android.companion.BluetoothDeviceFilter
 import android.companion.CompanionDeviceManager
-import android.content.Intent
+import android.content.Context
+import android.content.Context.BLUETOOTH_SERVICE
+import android.content.IntentFilter
 import android.content.IntentSender
-import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.Composable
-import drazek.jiyt.ui.JiytViewModelAnimList
-import drazek.jiyt.ui.theme.JiytTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.util.UUID
+import java.util.regex.Pattern
 
-class MainActivity : ComponentActivity() {
+class JiytBluetoothUtil(context: Context) {
+    private val appContext = context.applicationContext
 
-    private val animViewModel: JiytViewModelAnimList by viewModels()
-    private val permissions = arrayOf(
-        Manifest.permission.BLUETOOTH_SCAN,
-        Manifest.permission.BLUETOOTH_CONNECT
-    )
+    private var bluetoothAdapter: BluetoothAdapter? = null
+    private var socket: BluetoothSocket? = null
 
+    var connectedDeviceName by mutableStateOf("")
+        private set
 
-    //** LAUNCHERS **//
-    private var enableBluetoothLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                //bluetooth enabled
-                //making sure that there is no broken connection
-                animViewModel.terminateConnection()
-                Toast.makeText(this, "Enabled bluetooth for you :*", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Unable to activate bluetooth", Toast.LENGTH_LONG).show()
-            }
-        }
-
-    @SuppressLint("MissingPermission")
-    private var askForPermissionsLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-            val allGranted = granted.all {
-                it.value
-            }
-
-            if (allGranted) {
-                Toast.makeText(this, "${granted.keys} granted", Toast.LENGTH_SHORT).show()
-                animViewModel.setPermissionsGranted(true)
-                animViewModel.setBondedDevices()
-            } else {
-                Toast.makeText(this, "Couldn't grant ${granted.keys}", Toast.LENGTH_LONG).show()
-            }
-        }
-
-    @SuppressLint("MissingPermission")
-    private var deviceChooserLauncher =
-        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val device =
-                    result.data?.getParcelableExtra<BluetoothDevice>(CompanionDeviceManager.EXTRA_DEVICE)
-
-                // Permissions already checked, called from function that requires them
-                Log.println(Log.INFO, "Bluetooth", "Connecting to ${device!!.name}")
-                animViewModel.connectToDevice(device,this)
-            }
-        }
-    //***************//
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        val bluetoothManager = application.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-        if (bluetoothManager.adapter == null) {
-            //bluetooth not supported on this device
-        } else {
-            animViewModel.storeBluetoothAdapter(bluetoothManager.adapter)
-        }
-
-        askForPermissionsLauncher.launch(permissions)
-
-        setContent {
-            MainScreenView()
-        }
+    fun setup(){
+        // Get bluetooth adapter
+        val bm = appContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothAdapter = bm.adapter
     }
 
-    @Composable
-    fun MainScreenView() {
-        JiytTheme {
-//            TestScreen(
-//                associationOnClick = { associateOnClick() },
-//                logOnClick = { logOnClick() },
-//                sendMessageOnClick = { sendMessageOnClick() },
-//                selectDevice = { name -> selectDevice(name) },
-//                refreshOnClick = { refreshOnClick() },
-//                animViewModel
-//            )
-            JiytMainScreen()
-        }
-    }
+    fun runCompanionManagerWindow(
+        launcher: ActivityResultLauncher<IntentSenderRequest>,
+        context: Context
+    ){
+        val request = createAssociationRequest()
+        val companionManager = context.getSystemService(CompanionDeviceManager::class.java)
 
-    @SuppressLint("MissingPermission")
-    private fun refreshOnClick() {
-        if (checkAndAskForPermissions()) {
-            animViewModel.setBondedDevices()
-        }
-    }
-
-    private fun sendMessageOnClick() {
-        if (animViewModel.sendMessageData()) {
-            Toast.makeText(this, "Data sent: \"Hello :D\"", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, "Unable to send data", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun logOnClick() {
-        if (checkAndAskForPermissions()) {
-            Toast.makeText(
-                this,
-                animViewModel.getConnectionName(),
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun associateOnClick() {
-        if (checkAndAskForPermissions()) {
-            makeAssociation()
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun selectDevice(name: String) {
-        if (checkAndAskForPermissions()) {
-            animViewModel.bondedDevices.value!!.forEach {
-                if (it.name == name) {
-                    animViewModel.connectToDevice(it, this)
-                    Toast.makeText(this,"Connecting...", Toast.LENGTH_SHORT).show()
-                    return
-                }
-            }
-        }
-        Toast.makeText(this, "No device $name", Toast.LENGTH_LONG).show()
-    }
-
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private fun makeAssociation() {
-        // create association request (what devices you can see)
-        animViewModel.createAssociationRequest()
-
-        // creating an async popup that launches a deviceChooserLauncher
-        // when user makes a choice or timeout
-        val manager = getSystemService(CompanionDeviceManager::class.java)
-
-        manager.associate(
-            animViewModel.associationRequest.value!!,
-            object : CompanionDeviceManager.Callback() {
+        companionManager.associate(
+            request,
+            object : CompanionDeviceManager.Callback(){
                 override fun onAssociationPending(intentSender: IntentSender) {
-                    deviceChooserLauncher.launch(IntentSenderRequest.Builder(intentSender).build())
+                    val senderRequest = IntentSenderRequest.Builder(intentSender).build()
+                    launcher.launch(senderRequest)
                 }
 
                 override fun onFailure(error: CharSequence?) {
-                    Log.e("CDM", "Association failed: $error")
+                    Log.e("BluetoothUtil", "Association failed: $error")
+                    Toast.makeText(appContext,"Association failed!", Toast.LENGTH_LONG).show()
                 }
             },
             null
         )
     }
 
-    private fun checkAndAskForPermissions(): Boolean {
-        when {
-            animViewModel.bluetoothAdapter.value == null -> {
-                // bluetooth not supported
-                Toast.makeText(
-                    this,
-                    "Bluetooth is not supported on this device D:",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+    fun createAssociationRequest(): AssociationRequest{
+        val deviceFilter: BluetoothDeviceFilter = BluetoothDeviceFilter.Builder()
+            .setNamePattern(Pattern.compile(".")) // Optional filter by name
+            .build()
 
-            !animViewModel.bluetoothAdapter.value!!.isEnabled -> {
-                // bluetooth is off
-                Toast.makeText(this, "Bluetooth is off", Toast.LENGTH_LONG).show()
-            }
+        val request = AssociationRequest.Builder()
+            .addDeviceFilter(deviceFilter)
+            .build()
 
-            animViewModel.permissionsGranted.value == null || !animViewModel.permissionsGranted.value!! -> {
-                askForPermissionsLauncher.launch(permissions)
-            }
+        return request
+    }
 
-            else -> {
-                return true
+    // Opens a socket with a provided device and sets it as connected
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun openSocket(device: BluetoothDevice) {
+
+        CoroutineScope(Dispatchers.IO).launch {
+            // Terminate connection if any is established
+            terminateConnection()
+
+            try {
+                val uuid = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                socket = device.createRfcommSocketToServiceRecord(uuid)
+
+                if(socket?.connect()!=null){
+                    connectedDeviceName = device.name
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            appContext,
+                            "Connected to $connectedDeviceName",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    listenToDevice(socket!!)
+                }else{
+                    Log.e("BluetoothUtil", "Could not create a socket")
+                    Toast.makeText(appContext, "Can't establish connection", Toast.LENGTH_LONG)
+                        .show()
+                }
+            } catch (e: IOException) {
+                Log.e("BluetoothUtil", "Connection failed: ${e.message}")
+                // Terminate connection to avoid broken pipe
+                terminateConnection()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(appContext, "Connection failed, closing socket", Toast.LENGTH_LONG)
+                        .show()
+                }
             }
         }
-        return false
     }
 
-    private fun checkAndTurnOnBluetooth(animViewModel: JiytViewModelAnimList): Boolean {
-        when {
-            !animViewModel.bluetoothAdapter.value!!.isEnabled -> {
-                enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-            }
+    // Constantly listens to the connected device. Clears connection and sends a message when the target is not responding
+    private fun listenToDevice(socket: BluetoothSocket){
+        CoroutineScope(Dispatchers.IO).launch {
+            val buffer = ByteArray(1024)
+            val inputStream = socket.inputStream
 
-            else -> {
-                return true
+            try {
+                while (true) {
+                    val bytesRead = inputStream.read(buffer)
+
+                    if (bytesRead > 0) {
+                        val data = String(buffer, 0, bytesRead)
+                        // TODO: what to do on data received
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("BluetoothUtil", "Disconnected: ${e.message}")
+                terminateConnection()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(appContext, "Disconnected!", Toast.LENGTH_LONG).show()
+                }
             }
         }
-        return false
     }
 
+    // Sends data to a connected device
+    fun sendDataToConnected(data: String){
+        CoroutineScope(Dispatchers.IO).launch {
+            // Check if output stream exists (is the socket open)
+            if (socket?.outputStream != null) {
+                try {
+                    // Write data to output stream
+                    val dataBytes = "$data\n".toByteArray(Charsets.UTF_8)
+                    val chunkSize = 512
+                    var offset = 0
 
-    override fun onDestroy() {
-        animViewModel.terminateConnection()
-        super.onDestroy()
+                    while (offset < dataBytes.size) {
+                        val end = minOf(offset + chunkSize, dataBytes.size)
+                        socket!!.outputStream!!.write(dataBytes, offset, end - offset)
+                        offset = end
+                    }
+
+                    // Pushing what remains in the stream so that everything is sent
+                    socket!!.outputStream!!.flush()
+
+                    Log.println(
+                        Log.INFO,
+                        "BluetoothUtil",
+                        "Sent data to device $connectedDeviceName"
+                    )
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(appContext, "Data sent", Toast.LENGTH_SHORT).show()
+                    }
+
+                    // Success
+                } catch (e: IOException) {
+                    // Failed to send
+                    Log.e("BluetoothUtil", "Unable to send message: ${e.message}")
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            appContext,
+                            "An error occurred while sending a message :(",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } else {
+                Log.e("BluetoothUtil", "No socket created")
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        appContext,
+                        "Can't send data, no device connected!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
     }
-}
-    */
+
+    // Return bonded devices
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun getBondedDevices(): Set<BluetoothDevice>{
+        if(bluetoothAdapter==null){
+            Log.e("BluetoothUtil", "Can't fetch bonded devices. BluetoothAdapter does not exist!")
+            return emptySet()
+        }else {
+            val devs: Set<BluetoothDevice> = bluetoothAdapter!!.bondedDevices
+            return devs
+        }
+    }
+
+    // Ends connection with a connected device and reset the socket
+    fun terminateConnection(){
+        CoroutineScope(Dispatchers.IO).launch {
+            // Close connection if socket exists
+            socket?.close()
+            socket = null
+
+            // Remove connected device
+            connectedDeviceName = ""
+
+            Log.d("BluetoothUtil", "Connection terminated")
+        }
+    }
 }
