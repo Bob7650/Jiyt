@@ -6,17 +6,14 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -26,10 +23,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,20 +33,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import drazek.jiyt.R
+import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.ui.theme.JiytTheme
-import kotlin.math.exp
+import drazek.jiyt.util.JiytPreviewMaker
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun JiytExpandableListElement(
-    elementTitle: String,
+    entry: JiytAnimListEntry,
     onSettingsClick: () -> Unit,
     onPlayAnimationClick: (String) -> Unit,
     onLongPress: (String) -> Unit,
@@ -82,13 +77,13 @@ fun JiytExpandableListElement(
                         onLongClick = {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             // display bottom sheet
-                            onLongPress(elementTitle)
+                            onLongPress(entry.fileName)
                         },
                         onLongClickLabel = "Animation Options"
                     )
             ){
                 Text(
-                    text = elementTitle,
+                    text = entry.fileName,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
@@ -104,13 +99,17 @@ fun JiytExpandableListElement(
                 exit = shrinkVertically(animationSpec = tween(300))
             ) {
                 Column(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)){
+
+                    // PREVIEW
                     Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_background),
+                        bitmap = entry.prevImage.asImageBitmap(),
                         contentDescription = null,
+                        filterQuality = FilterQuality.None,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(300.dp)
                     )
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
@@ -122,7 +121,7 @@ fun JiytExpandableListElement(
                             modifier = Modifier.padding(end = 5.dp),
                             shape = RoundedCornerShape(5.dp),
                             onClick = {
-                                onPlayAnimationClick(elementTitle)
+                                onPlayAnimationClick(entry.fileName)
                             }) {
                             Text(text = "Display")
                         }
@@ -145,7 +144,7 @@ fun JiytExpandableListElement(
 @Composable
 private fun PrevExpElement() {
     JiytTheme {
-        JiytExpandableListElement("Example animation", {}, {}, {})
+        JiytExpandableListElement(JiytAnimListEntry(fileName = "Example animation", data = List(16){List(16){Color.Red} }, prevImage = JiytPreviewMaker().getDefaultPreview()), {}, {}, {})
     }
 }
 
@@ -153,6 +152,6 @@ private fun PrevExpElement() {
 @Composable
 private fun PrevExpElementExpanded() {
     JiytTheme {
-        JiytExpandableListElement(elementTitle = "Example animation", {}, {}, {}, defaultState = true)
+        JiytExpandableListElement(JiytAnimListEntry(fileName = "Example animation", data = List(16){List(16){Color.Red} }, prevImage = JiytPreviewMaker().getDefaultPreview()), {}, {}, {}, defaultState = true)
     }
 }

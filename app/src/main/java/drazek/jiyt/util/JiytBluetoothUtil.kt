@@ -17,13 +17,13 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import drazek.jiyt.ui.data.BluetoothState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -146,15 +146,17 @@ class JiytBluetoothUtil(context: Context) {
             // Check if output stream exists (is the socket open)
             if (socket?.outputStream != null) {
                 try {
+
                     // Write data to output stream
                     val dataBytes = "$data\n".toByteArray(Charsets.UTF_8)
-                    val chunkSize = 512
+                    val chunkSize = 256
                     var offset = 0
 
                     while (offset < dataBytes.size) {
                         val end = minOf(offset + chunkSize, dataBytes.size)
                         socket!!.outputStream!!.write(dataBytes, offset, end - offset)
                         offset = end
+                        delay(10)
                     }
 
                     // Pushing what remains in the stream so that everything is sent

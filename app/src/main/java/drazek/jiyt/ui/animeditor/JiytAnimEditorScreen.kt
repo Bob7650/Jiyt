@@ -21,16 +21,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import drazek.jiyt.ui.components.JiytColorPickerPopup
 import drazek.jiyt.ui.components.JiytLEDMatrixEditor
 import drazek.jiyt.ui.components.JiytSavePopup
@@ -38,6 +39,7 @@ import drazek.jiyt.ui.components.JiytToolBar
 import drazek.jiyt.ui.components.JiytTopAppBar
 import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.ui.data.ToolTypes
+import drazek.jiyt.util.JiytPreviewMaker
 
 const val GRID_SIZE = 16
 
@@ -58,16 +60,14 @@ fun JiytAnimEditorScreen(
 
     // Mutable values that composable needs to react to
     val hasFileAssociated = remember { mutableStateOf(animEntry!=null) }
-    val remFileName = remember { mutableStateOf(animEntry?.fileName ?: "New Animation.json") }
+
+    var remFileName by remember { mutableStateOf(animEntry?.fileName ?: "New Animation.json") }
     val grid = remember {
         if (!hasFileAssociated.value)
             mutableStateListOf(*Array(GRID_SIZE) { mutableStateListOf(*Array(GRID_SIZE) { Color.Black }) } )
         else
-            animEntry!!.data.map { row ->
-                    row.map { colorInt->
-                        Color(green = colorInt[0]/255f, red = colorInt[1]/255f, blue = colorInt[2]/255f, alpha = 1f)
-                    }.toMutableStateList()
-            }.toMutableStateList()
+            animEntry!!.data.map { row -> row.toMutableStateList() }.toMutableStateList()
+
     }
 
     LaunchedEffect(Unit) {
@@ -105,13 +105,21 @@ fun JiytAnimEditorScreen(
             onConfirm = { inValue ->
                 if(viewModel.storageManager.checkIfNameAvailable(name = inValue)) {
 
-                    // Change name displayed by top bar
-                    remFileName.value = inValue
+                    // Make entry instance
+                    val entry = JiytAnimListEntry(
+                        fileName = inValue,
+                        data = grid,
+                        prevImage = JiytPreviewMaker().makeABitmapFor(grid)
+                    )
+
                     // Save to file
                     viewModel.storageManager.saveDataToFile(
-                        fileName = remFileName.value,
-                        data = grid.map { it.toList()
-                        })
+                        entry = entry
+                    )
+
+                    // Change name displayed by top bar
+                    remFileName = inValue
+
                     // Remember that the file is associated
                     hasFileAssociated.value = true
                     // Send feedback to user
@@ -133,7 +141,7 @@ fun JiytAnimEditorScreen(
     Scaffold(
         topBar = {
             JiytTopAppBar(
-                title = remFileName.value,
+                title = remFileName,
                 canGoBack = true,
                 onBackClicked = navigateBack,
             )
@@ -212,7 +220,11 @@ fun JiytAnimEditorScreen(
                             // Ask for file name (display popup)
                             showSavePopup.value = true
                         }else{
-                            viewModel.storageManager.saveDataToFile(fileName = remFileName.value, data = grid.map { it.toList() })
+                            viewModel.storageManager.saveDataToFile(JiytAnimListEntry(
+                                fileName = remFileName,
+                                data = grid,
+                                prevImage = JiytPreviewMaker().makeABitmapFor(grid)
+                            ))
                         }
                     },
                     shape = RoundedCornerShape(5.dp),

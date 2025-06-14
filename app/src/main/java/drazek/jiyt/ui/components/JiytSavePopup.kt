@@ -35,14 +35,13 @@ fun JiytSavePopup(
                 onValueChange = { updatedValue: TextFieldValue -> textFieldContent = updatedValue },
                 label = { Text("Animation title") },
                 singleLine = true,
-                suffix = { Text(".json") },
                 modifier = Modifier
                     .fillMaxWidth()
             )
         },
         confirmButton = {
             TextButton(onClick = {
-                onConfirm("${textFieldContent.text}.json")
+                onConfirm(textFieldContent.text)
                 onDismiss()
             }) { Text("Save") }
         },

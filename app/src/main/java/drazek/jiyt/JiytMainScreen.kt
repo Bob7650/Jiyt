@@ -19,6 +19,7 @@ import drazek.jiyt.ui.btscreen.JiytBTSettingsArgs
 import drazek.jiyt.ui.btscreen.JiytBTSettingsScreen
 import drazek.jiyt.ui.data.JiytAnimListEntry
 import drazek.jiyt.util.JiytBluetoothUtil
+import drazek.jiyt.util.JiytSerializer
 import drazek.jiyt.util.JiytStorageManager
 
 @Composable
@@ -58,12 +59,7 @@ fun JiytMainScreen(
             val args = it.toRoute<JiytAnimEditorArgs>()
 
             // Check if passed argument represents a file, if not return null
-            var entry: JiytAnimListEntry? =
-            if(args.jsonData.isEmpty()){
-                null
-            }else{
-                Gson().fromJson(args.jsonData, JiytAnimListEntry::class.java)
-            }
+            var entry: JiytAnimListEntry? = JiytSerializer().deserializeEntry(args.jsonData, storageManager = sharedStorageManager)
 
             JiytAnimEditorScreen(
                 animEntry = entry,

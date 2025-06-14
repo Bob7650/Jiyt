@@ -1,14 +1,16 @@
 package drazek.jiyt.util
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.graphics.Color
 import com.google.gson.Gson
 import drazek.jiyt.ui.data.JiytAnimListEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 
 class JiytStorageManager(context: Context) {
@@ -16,11 +18,16 @@ class JiytStorageManager(context: Context) {
     private val appContext = context.applicationContext
 
     val animDir = File(appContext.filesDir, "animations")
+    val prevDir = File(appContext.filesDir, "previews")
 
     init{
-        // Setting up the directory where animations are stored
+        // Setting up the directories
         if(!animDir.exists()){
-            animDir.mkdir()
+            animDir.mkdirs()
+        }
+
+        if(!prevDir.exists()){
+            prevDir.mkdirs()
         }
     }
 
@@ -39,47 +46,38 @@ class JiytStorageManager(context: Context) {
 
         // Map only correct entries to loadedEntries (ones that can be successfully converted)
         val loadedEntries = listOfFiles.mapNotNull { fileName ->
-            getEntryClassFromName(fileName)
+            JiytSerializer().deserializeEntry(getFileContentFromName(fileName), storageManager = this)
         }
 
         // Add all created instances to our list
         _animListEntries.addAll(loadedEntries)
     }
 
-    fun saveDataToFile(fileName: String, data: List<List<Color>>){
+    fun saveDataToFile(entry: JiytAnimListEntry){
         try {
-            Log.d("StorageManager", "Saving $fileName to $animDir")
+            Log.d("StorageManager", "Saving ${entry.fileName} to $animDir")
 
-            // Sending data to serializable structure
-            // 1. Converting Color because it's not serializable
-            val serializableGrid: List<List<List<Int>>> = data.map { row ->
-                row.map { color ->
-                    listOf(
-                        (color.red * 255).toInt(),
-                        (color.green * 255).toInt(),
-                        (color.blue * 255).toInt()
-                    )
-                }
-            }
-
-            // 2. Saving to custom structure
-            val animListEntry = JiytAnimListEntry(
-                fileName = fileName,
-                frameRate = 5.0,
-                data = serializableGrid
-            )
+            // Setting preview name
+            val prevName = "${entry.fileName}.png"
+            val fileName = "${entry.fileName}.json"
 
             // Converting to json
-            val jsonData = Gson().toJson(animListEntry)
+            val json = JiytSerializer().serializeEntry(entry)
 
             // Creating file with filesDir destination
             val file = File(animDir, fileName)
 
             // Writing to file
-            file.writeText(jsonData)
+            file.writeText(json)
+
+            // Make bitmap for preview
+            val previewImage = JiytPreviewMaker().makeABitmapFor(entry.data)
+
+            // Save a preview to a file
+            saveBitmapToInternalStorage(previewImage, prevName)
 
         }catch (e: Exception){
-            Log.e("StorageManager", "Unable to save $fileName: ${e.message}")
+            Log.e("StorageManager", "Unable to save ${entry.fileName}.json: ${e.message}")
         }
     }
 
@@ -88,39 +86,19 @@ class JiytStorageManager(context: Context) {
     }
 
     // Returns contents of the file
-    fun getFileDataFromName(fileName: String): String{
+    fun getFileContentFromName(fileNameExt: String): String{
         var data = ""
         try {
-            Log.d("StorageManager", "Loading data from $fileName")
+            Log.d("StorageManager", "Loading data from $fileNameExt")
             // Get reference to a file
-            val file = File(animDir, fileName)
+            val file = File(animDir, fileNameExt)
 
             // Read data as string
             data = file.readText()
         }catch (e: IOException){
-            Log.e("StorageManager", "Unable to load data from $fileName")
+            Log.e("StorageManager", "Unable to load content from $fileNameExt: ${e.message}")
         }
         return data
-    }
-
-    // Returns a JiytAnimListEntry class or null
-    fun getEntryClassFromName(fileName: String): JiytAnimListEntry?{
-
-        var entryObject: JiytAnimListEntry?
-
-        try {
-            Log.d("StorageManager", "Converting $fileName to a JiytAnimListEntry")
-            // Using Gson library to convert json back to object
-            entryObject = Gson().fromJson(
-                getFileDataFromName(fileName),
-                JiytAnimListEntry::class.java
-            )
-        } catch (e: Exception) {
-            Log.e("StorageManager", "Unable to transform $fileName to JiytAnimListEntry. Skipping! Exception: ${e.message}")
-            return null
-        }
-
-        return entryObject
     }
 
     // Needs to be launched in scope. Code after it can only be executed after this function finishes
@@ -137,6 +115,36 @@ class JiytStorageManager(context: Context) {
                 // Update entries always (coz why not)
                 updateEntriesFromStorage()
             }
+        }
+    }
+
+    fun saveBitmapToInternalStorage(bitmap: Bitmap, filenameExt: String): Boolean {
+        return try {
+
+            val file = File(prevDir, filenameExt)
+
+            FileOutputStream(file).use { outputStream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            }
+
+            true
+        } catch (e: Exception) {
+            Log.e("StorageManager","Couldn't save bitmap $filenameExt: ${e.message}")
+            false
+        }
+    }
+
+    fun loadBitmap(filenameExt: String): Bitmap?{
+        return try {
+            val file = File(prevDir, filenameExt)
+            if (file.exists()) {
+                BitmapFactory.decodeFile(file.absolutePath)
+            } else {
+                null // File not found
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

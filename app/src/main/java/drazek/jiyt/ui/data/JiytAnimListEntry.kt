@@ -1,7 +1,10 @@
 package drazek.jiyt.ui.data
 
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.Color
+
 data class JiytAnimListEntry(
     val fileName: String,
-    val frameRate: Double,
-    val data: List<List<List<Int>>>
+    val data: List<List<Color>>,
+    val prevImage: Bitmap
 )

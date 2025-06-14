@@ -5,12 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.google.gson.Gson
 import drazek.jiyt.util.JiytBluetoothUtil
+import drazek.jiyt.util.JiytSerializer
 import drazek.jiyt.util.JiytStorageManager
 
 class JiytAnimListVM(val storageManager: JiytStorageManager, val bluetoothUtil: JiytBluetoothUtil): ViewModel() {
 
     fun sendDataToConnectedDevice(animName: String) {
-        val animEntry = storageManager.getEntryClassFromName(animName)
+        val animEntry = JiytSerializer().deserializeEntry(storageManager.getFileContentFromName(fileNameExt = "$animName.json"),storageManager)
 
         if (animEntry == null) {
             Log.e("sendDataToDevice", "Animation data does not exist!")
@@ -20,7 +21,7 @@ class JiytAnimListVM(val storageManager: JiytStorageManager, val bluetoothUtil: 
         val serializableObject = SerializableObject(
             cmd = "displayFrame",
             frameId = animEntry.fileName,
-            frameData = animEntry.data
+            frameData = JiytSerializer().getSerializableGrid(animEntry.data)
         )
 
         val jsonToSend: String = Gson().toJson(serializableObject)
