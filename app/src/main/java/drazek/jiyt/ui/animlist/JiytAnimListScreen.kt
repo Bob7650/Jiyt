@@ -81,29 +81,10 @@ fun JiytAnimListScreen(
      */
 
     Scaffold(
-        topBar = { JiytTopAppBar(title = "Animations list", canGoBack = false) },
+        topBar = { JiytTopAppBar(title = "Animations list", canSettings = true, onBTSettings = navToBTSet, bluetoothState = viewModel.bluetoothUtil.bluetoothState) },
         floatingActionButton = { JiytFloatingActionButton({navToAnimEditor("")}) }
     ) { contentPadding ->
         Column(modifier = Modifier.padding(contentPadding)) {
-
-            // SELECTED DEVICE
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-
-
-                // CONNECT DEVICE (make separate screen in future maybe)
-                Button(
-                    modifier = Modifier.padding(start = 10.dp, end = 10.dp),
-                    onClick = {
-                        navToBTSet()
-                    }
-                ) {
-                    Text("Connect device")
-                }
-            }
 
             // LAZY COLUMN
             LazyColumn {

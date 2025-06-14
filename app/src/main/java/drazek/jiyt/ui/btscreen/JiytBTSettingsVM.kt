@@ -13,7 +13,7 @@ class JiytBTSettingsVM(val bluetoothUtil: JiytBluetoothUtil): ViewModel(){
 
     val bondedDevices = mutableStateListOf<BluetoothDevice>()
 
-    fun getBondedDevices(context: Context){
+    fun updateBondedDevices(context: Context){
         if(ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED){
             bondedDevices.clear()
             bondedDevices.addAll(bluetoothUtil.getBondedDevices())

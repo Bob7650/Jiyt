@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import drazek.jiyt.ui.components.JiytTopAppBar
+import kotlinx.coroutines.withContext
 
 @Composable
 fun JiytBTSettingsScreen(
@@ -42,15 +43,14 @@ fun JiytBTSettingsScreen(
     // Bluetooth device
     var connectedDeviceName = viewModel.bluetoothUtil.connectedDeviceName
 
-    LaunchedEffect(Unit) {
-        viewModel.getBondedDevices(context)
-    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if(!granted){
             // TODO: Show message explaining why the app needs this permission
+        }else{
+            viewModel.updateBondedDevices(context)
         }
     }
 
@@ -63,6 +63,15 @@ fun JiytBTSettingsScreen(
                 viewModel.bluetoothUtil.openSocket(device)
         }
     }
+
+    LaunchedEffect(Unit) {
+        if(ActivityCompat.checkSelfPermission(context,android.Manifest.permission.BLUETOOTH_CONNECT)== PackageManager.PERMISSION_GRANTED){
+            viewModel.updateBondedDevices(context)
+        }else {
+            permissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+        }
+    }
+
 
 
 
@@ -127,7 +136,7 @@ fun JiytBTSettingsScreen(
 
                 // REFRESH
                 Button(onClick = {
-                    viewModel.getBondedDevices(context)
+                    viewModel.updateBondedDevices(context)
                 }) {
                     Text("Refresh List")
                 }
@@ -144,8 +153,10 @@ fun JiytBTSettingsScreen(
                             .fillMaxWidth()
                             .padding(start = 10.dp, end = 10.dp)
                     ) {
+                        // DEVICE NAME
                         Text(it.name)
 
+                        // CONNECT
                         Button(
                             onClick = {
                                 viewModel.bluetoothUtil.openSocket(it)

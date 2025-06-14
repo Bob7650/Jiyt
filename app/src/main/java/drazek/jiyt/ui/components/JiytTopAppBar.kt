@@ -13,7 +13,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import drazek.jiyt.R
+import drazek.jiyt.ui.data.BluetoothState
 import drazek.jiyt.ui.theme.JiytTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,6 +26,9 @@ fun JiytTopAppBar(
     title: String,
     canGoBack: Boolean = false,
     onBackClicked: () -> Unit = {},
+    canSettings: Boolean = false,
+    onBTSettings: () -> Unit = {},
+    bluetoothState: BluetoothState = BluetoothState.BT_OFF
 ){
 
     var isAnimationRunning by remember { mutableStateOf(false) }
@@ -47,7 +54,35 @@ fun JiytTopAppBar(
                 }
             }
         },
-
+        actions = {
+            if(canSettings) {
+                IconButton(onClick = {
+                    onBTSettings()
+                }) {
+                    when(bluetoothState){
+                        BluetoothState.BT_ON -> {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_bluetooth_24),
+                                contentDescription = null
+                            )
+                        }
+                        BluetoothState.BT_OFF -> {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_bluetooth_disabled_24),
+                                contentDescription = null
+                            )
+                        }
+                        BluetoothState.BT_CONNECTED -> {
+                            Icon(
+                                painter = painterResource(R.drawable.baseline_bluetooth_connected_24),
+                                contentDescription = null,
+                                tint = Color.Green
+                            )
+                        }
+                    }
+                }
+            }
+        }
     )
 }
 
@@ -55,6 +90,6 @@ fun JiytTopAppBar(
 @Composable
 private fun PrevTopBar() {
     JiytTheme {
-        JiytTopAppBar(title = "Animations",canGoBack = true)
+        JiytTopAppBar(title = "Animations",canGoBack = true, canSettings = true)
     }
 }

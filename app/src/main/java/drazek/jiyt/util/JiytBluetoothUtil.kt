@@ -17,9 +17,11 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.annotation.RequiresPermission
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import drazek.jiyt.ui.data.BluetoothState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,11 +38,18 @@ class JiytBluetoothUtil(context: Context) {
 
     var connectedDeviceName by mutableStateOf("")
         private set
+    var bluetoothState by mutableStateOf<BluetoothState>(BluetoothState.BT_OFF)
+        private set
+
 
     fun setup(){
         // Get bluetooth adapter
         val bm = appContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bm.adapter
+
+        bluetoothState = BluetoothState.BT_ON
+
+        appContext.registerReceiver(JiytBluetoothStateListener(this), IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
     }
 
     fun runCompanionManagerWindow(
@@ -84,6 +93,14 @@ class JiytBluetoothUtil(context: Context) {
     fun openSocket(device: BluetoothDevice) {
 
         CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(
+                    appContext,
+                    "Connecting...",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
             // Terminate connection if any is established
             terminateConnection()
 
@@ -93,6 +110,7 @@ class JiytBluetoothUtil(context: Context) {
 
                 if(socket?.connect()!=null){
                     connectedDeviceName = device.name
+                    bluetoothState = BluetoothState.BT_CONNECTED
 
                     withContext(Dispatchers.Main) {
                         Toast.makeText(
@@ -101,6 +119,7 @@ class JiytBluetoothUtil(context: Context) {
                             Toast.LENGTH_SHORT
                         ).show()
                     }
+
 
                     listenToDevice(socket!!)
                 }else{
@@ -114,34 +133,8 @@ class JiytBluetoothUtil(context: Context) {
                 terminateConnection()
 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(appContext, "Connection failed, closing socket", Toast.LENGTH_LONG)
+                    Toast.makeText(appContext, "Connection failed!", Toast.LENGTH_LONG)
                         .show()
-                }
-            }
-        }
-    }
-
-    // Constantly listens to the connected device. Clears connection and sends a message when the target is not responding
-    private fun listenToDevice(socket: BluetoothSocket){
-        CoroutineScope(Dispatchers.IO).launch {
-            val buffer = ByteArray(1024)
-            val inputStream = socket.inputStream
-
-            try {
-                while (true) {
-                    val bytesRead = inputStream.read(buffer)
-
-                    if (bytesRead > 0) {
-                        val data = String(buffer, 0, bytesRead)
-                        // TODO: what to do on data received
-                    }
-                }
-            } catch (e: IOException) {
-                Log.e("BluetoothUtil", "Disconnected: ${e.message}")
-                terminateConnection()
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(appContext, "Disconnected!", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -222,8 +215,34 @@ class JiytBluetoothUtil(context: Context) {
 
             // Remove connected device
             connectedDeviceName = ""
-
+            bluetoothState = BluetoothState.BT_ON
             Log.d("BluetoothUtil", "Connection terminated")
+        }
+    }
+
+    // Constantly listens to the connected device. Clears connection and sends a message when the target is not responding
+    private fun listenToDevice(socket: BluetoothSocket){
+        CoroutineScope(Dispatchers.IO).launch {
+            val buffer = ByteArray(1024)
+            val inputStream = socket.inputStream
+
+            try {
+                while (true) {
+                    val bytesRead = inputStream.read(buffer)
+
+                    if (bytesRead > 0) {
+                        val data = String(buffer, 0, bytesRead)
+                        // TODO: what to do on data received
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("BluetoothUtil", "Disconnected: ${e.message}")
+                terminateConnection()
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(appContext, "Disconnected!", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }
